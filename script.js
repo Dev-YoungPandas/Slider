@@ -146,8 +146,8 @@ const personImages = {
     const nextBg = backgrounds[currentBgIndex === 0 ? 1 : 0];
     nextBg.style.backgroundImage = `url(${imageUrl})`;
     const transitionSpeed = getDeviceType() === 'mobile' ? 0.4 : 0.3;
-    gsap.to(currentBg, { opacity: 0, duration: transitionSpeed, ease: 'power1.inOut' });
-    gsap.to(nextBg, { opacity: 1, duration: transitionSpeed, ease: 'power1.inOut' });
+    gsap.to(currentBg, { opacity: 0, duration: transitionSpeed,  });
+    gsap.to(nextBg, { opacity: 1, duration: transitionSpeed,  });
     currentBgIndex = currentBgIndex === 0 ? 1 : 0;
   }
   
@@ -194,7 +194,7 @@ const personImages = {
       manualNavigationActive = true; // Stop automatic animation
       const personName = activateName(index);
       const images = personImages[personName];
-      const intervalTime = 3000 / images.length; // Cycle through all images in 5 seconds
+      const intervalTime = 5000 / images.length; // Cycle through all images in 5 seconds
       let imgIndex = 0;
       const slideshowInterval = setInterval(() => {
         changeBackground(images[imgIndex]);
@@ -206,7 +206,7 @@ const personImages = {
         // Navigate to the target page (use the href from the parent <a>)
         const targetUrl = nameEl.parentElement.getAttribute('href');
         window.location.href = targetUrl;
-      }, 5000);
+      }, 3000);
     });
   });
   

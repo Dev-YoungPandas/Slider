@@ -38,6 +38,10 @@ const personImages = {
     ]
   };
   
+  // Track if images are properly loaded
+  const loadedImages = {};
+  let imagesLoaded = false;
+  
   // Create a background container
   const page1 = document.getElementById('page1');
   const backgroundContainer = document.createElement('div');
@@ -53,7 +57,7 @@ const personImages = {
   `;
   page1.insertBefore(backgroundContainer, page1.firstChild);
   
-  // Create multiple background elements for faster transitions
+  // Create multiple background elements for transitions
   const backgrounds = [];
   for (let i = 0; i < 2; i++) {
     const bg = document.createElement('div');
@@ -68,21 +72,75 @@ const personImages = {
       background-position: center;
       opacity: ${i === 0 ? 1 : 0};
       z-index: ${i === 0 ? 1 : 2};
+      will-change: opacity;
+      transform: translateZ(0);
     `;
     backgroundContainer.appendChild(bg);
     backgrounds.push(bg);
   }
   
-  // Preload images for smoother transitions
+  // Add a loading indicator
+  const loadingIndicator = document.createElement('div');
+  loadingIndicator.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 18px;
+    z-index: 9999;
+  `;
+  loadingIndicator.textContent = 'Loading images...';
+  document.body.appendChild(loadingIndicator);
+  
+  // Preload images more effectively
   function preloadImages() {
-    const allImages = [];
-    Object.values(personImages).forEach(imageSet => {
-      imageSet.forEach(img => allImages.push(img));
-    });
-    
-    allImages.forEach(src => {
-      const img = new Image();
-      img.src = src;
+    return new Promise((resolve) => {
+      let loadedCount = 0;
+      const totalImages = Object.values(personImages).reduce((acc, arr) => acc + arr.length, 0);
+      
+      Object.entries(personImages).forEach(([person, urls]) => {
+        loadedImages[person] = [];
+        
+        urls.forEach((url, index) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            loadedImages[person][index] = true;
+            loadedCount++;
+            
+            // Update loading text
+            const percent = Math.floor((loadedCount / totalImages) * 100);
+            loadingIndicator.textContent = `Loading images... ${percent}%`;
+            
+            if (loadedCount === totalImages) {
+              imagesLoaded = true;
+              document.body.removeChild(loadingIndicator);
+              resolve();
+            }
+          };
+          
+          img.onerror = () => {
+            // Mark as loaded even if there's an error to prevent hanging
+            loadedImages[person][index] = false;
+            loadedCount++;
+            
+            if (loadedCount === totalImages) {
+              imagesLoaded = true;
+              document.body.removeChild(loadingIndicator);
+              resolve();
+            }
+          };
+          
+          // Add timestamp to bypass cache issues
+          img.src = `${url}?t=${Date.now()}`;
+        });
+      });
     });
   }
   
@@ -96,17 +154,20 @@ const personImages = {
     document.querySelector('.name6')
   ];
   
-  // Detect device type
-  function getDeviceType() {
+  // Detect device type and performance
+  function getDeviceInfo() {
     const width = window.innerWidth;
-    if (width < 576) return 'mobile';
-    if (width < 992) return 'tablet';
-    return 'desktop';
+    const deviceType = width < 576 ? 'mobile' : width < 992 ? 'tablet' : 'desktop';
+    
+    // Check if low-end device based on navigator.hardwareConcurrency
+    const isLowEndDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+    
+    return { deviceType, isLowEndDevice };
   }
   
   // Function to set responsive font sizes and positions
   function setResponsiveSizes() {
-    const deviceType = getDeviceType();
+    const { deviceType } = getDeviceInfo();
     const pack = document.getElementById('pack');
     
     // Reset any inline styles first
@@ -131,6 +192,8 @@ const personImages = {
         name.style.width = '100%';
         name.style.textAlign = 'end';
         name.style.transformOrigin = 'right center';
+        name.style.willChange = 'transform, opacity, color';
+        name.style.transform = 'translateZ(0)';
       });
     } else if (deviceType === 'tablet') {
       // Tablet styles
@@ -147,7 +210,8 @@ const personImages = {
         name.style.width = '100%';
         name.style.textAlign = 'end';
         name.style.transformOrigin = 'right center';
-
+        name.style.willChange = 'transform, opacity, color';
+        name.style.transform = 'translateZ(0)';
       });
     }
     
@@ -170,14 +234,14 @@ const personImages = {
         line.style.width = '100%';
         line.style.display = 'flex';
         line.style.alignItems = 'center';
-        line.style.justifyContent = 'center';
+        line.style.justifyContent = 'end';
         line.style.position = 'absolute';
         line.style.color = 'white';
         line.style.height = '10vh';
         line.style.right = '0';
+        line.style.paddingRight = '5%';
         
         // Calculate bottom position
-        // More spacing between lines on tablet
         const spacing = deviceType === 'tablet' ? 18 : 16;
         const bottomPosition = 84 - (index * spacing);
         line.style.bottom = `${bottomPosition}%`;
@@ -185,154 +249,249 @@ const personImages = {
     }
   }
   
+  // Animation timeline to control transitions
+  let currentTransition = null;
+  
   // Function to activate a name with improved animation
   function activateName(index) {
-    const deviceType = getDeviceType();
+    const { deviceType, isLowEndDevice } = getDeviceInfo();
     
     // Calculate proper scale based on device
     const activeScale = deviceType === 'mobile' ? 1.15 : 
                         deviceType === 'tablet' ? 1.1 : 1.3;
     
-    // Reset all names to inactive state with a faster animation
+    // Kill any ongoing animations
+    if (currentTransition) {
+      currentTransition.kill();
+    }
+    
+    // Create new timeline
+    currentTransition = gsap.timeline();
+    
+    // Reset all names to inactive state
     nameElements.forEach(el => {
-      gsap.to(el, {
+      currentTransition.to(el, {
         scale: 1,
         opacity: 0.5,
         color: '#afafaf',
-        duration: 0.2,
+        duration: isLowEndDevice ? 0.3 : 0.2,
         ease: 'power1.out'
-      });
+      }, 0);
     });
   
-    // Activate the current name with a sharper, faster animation
-    gsap.to(nameElements[index], {
+    // Activate the current name with animation
+    currentTransition.to(nameElements[index], {
       scale: activeScale,
       opacity: 1,
-      transformOrigin: 'right center',
       color: '#fff',
-      duration: 0.2,
+      duration: isLowEndDevice ? 0.3 : 0.2,
       ease: 'power2.out'
-    });
+    }, 0);
   
     return nameElements[index].textContent;
   }
   
   // Current background index
   let currentBgIndex = 0;
+  let isTransitioning = false;
   
-  // Function to change background image with faster transitions
+  // Function to change background image with optimized transitions
   function changeBackground(imageUrl) {
-    // Get current and next background elements
-    const currentBg = backgrounds[currentBgIndex];
-    const nextBg = backgrounds[currentBgIndex === 0 ? 1 : 0];
-    
-    // Set the next background image
-    nextBg.style.backgroundImage = `url(${imageUrl})`;
-    
-    // Adjust transition speed based on device
-    const transitionSpeed = getDeviceType() === 'mobile' ? 0.3 : 0.3;
-    
-    // Fast crossfade transition
-    gsap.to(currentBg, {
-      opacity: 0,
-      duration: transitionSpeed,
-      ease: 'power1.inOut'
+    return new Promise((resolve) => {
+      // Don't start a new transition if one is already in progress
+      if (isTransitioning) {
+        resolve();
+        return;
+      }
+      
+      isTransitioning = true;
+      
+      // Get current and next background elements
+      const currentBg = backgrounds[currentBgIndex];
+      const nextBg = backgrounds[currentBgIndex === 0 ? 1 : 0];
+      
+      // Set the next background image
+      nextBg.style.backgroundImage = `url(${imageUrl})`;
+      
+      // Get device info for transition timing
+      const { isLowEndDevice } = getDeviceInfo();
+      const transitionSpeed = isLowEndDevice ? 0.5 : 0.4;
+      
+      // Create a timeline for the transition
+      const tl = gsap.timeline({
+        onComplete: () => {
+          isTransitioning = false;
+          resolve();
+        }
+      });
+      
+      // Add a small delay before starting the transition
+      tl.to({}, { duration: 0.05 });
+      
+      // Fade in next background
+      tl.to(nextBg, {
+        opacity: 1,
+        duration: transitionSpeed,
+        ease: 'power1.inOut'
+      }, 0);
+      
+      // Fade out current background
+      tl.to(currentBg, {
+        opacity: 0,
+        duration: transitionSpeed,
+        ease: 'power1.inOut'
+      }, 0);
+      
+      // Toggle background index
+      currentBgIndex = currentBgIndex === 0 ? 1 : 0;
     });
-    
-    gsap.to(nextBg, {
-      opacity: 1,
-      duration: transitionSpeed,
-      ease: 'power1.inOut'
-    });
-    
-    // Toggle background index
-    currentBgIndex = currentBgIndex === 0 ? 1 : 0;
   }
+  
+  // Variable to keep track of whether animation should continue
+  let continueAnimation = true;
   
   // Function to run the animation sequence with improved timing
   async function runAnimation() {
     let currentPersonIndex = 0;
     
-    // Preload the first set of images
-    const firstPersonName = nameElements[0].textContent;
-    personImages[firstPersonName].forEach(img => {
-      const imgEl = new Image();
-      imgEl.src = img;
-    });
-    
-    while (true) {
-      // Activate the current person
-      const currentPerson = activateName(currentPersonIndex);
-      const currentImages = personImages[currentPerson];
+    while (continueAnimation) {
+      try {
+        // Activate the current person
+        const currentPerson = activateName(currentPersonIndex);
+        const currentImages = personImages[currentPerson];
+        
+        // Get device info for timing
+        const { deviceType, isLowEndDevice } = getDeviceInfo();
+        
+        // Longer display times for low-end devices
+        const baseDisplayTime = isLowEndDevice ? 1200 : 900;
+        const imageDisplayTime = deviceType === 'mobile' ? baseDisplayTime : baseDisplayTime;
+        
+        // Cycle through each image for the current person
+        for (let i = 0; i < currentImages.length && continueAnimation; i++) {
+          // Change background and wait for transition to complete
+          await changeBackground(currentImages[i]);
+          
+          // Wait for the specified display time
+          await new Promise(resolve => setTimeout(resolve, imageDisplayTime));
+        }
+        
+        // Move to the next person
+        currentPersonIndex = (currentPersonIndex + 1) % nameElements.length;
+        
+      } catch (error) {
+        console.error('Animation error:', error);
+        // If there's an error, wait and try to continue
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  // Handle visibility changes to pause animations when tab is not visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      continueAnimation = false;
+    } else {
+      if (!continueAnimation) {
+        continueAnimation = true;
+        runAnimation();
+      }
+    }
+  });
+  
+  // Initialize the page
+  async function initPage() {
+    try {
+      // Remove the brown background from the pack div
+      document.getElementById('pack').style.backgroundColor = 'transparent';
       
-      // Adjust timing based on device
-      const deviceType = getDeviceType();
-      const imageDisplayTime = deviceType === 'mobile' ? 700 : 800;
+      // Add a dark overlay to the page for better text visibility
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2;
+      `;
+      page1.insertBefore(overlay, document.getElementById('pack'));
       
-      // Cycle through each image for the current person
-      for (let i = 0; i < currentImages.length; i++) {
-        changeBackground(currentImages[i]);
-        await new Promise(resolve => setTimeout(resolve, imageDisplayTime));
+      // Update z-index of pack
+      document.getElementById('pack').style.zIndex = '3';
+      
+      // Apply responsive adjustments
+      setResponsiveSizes();
+      
+      // Preload all images before starting animation
+      await preloadImages();
+      
+      // Start animation only after images are loaded
+      continueAnimation = true;
+      runAnimation();
+      
+    } catch (error) {
+      console.error('Initialization error:', error);
+      // If loading fails, remove loading indicator and show error
+      if (document.body.contains(loadingIndicator)) {
+        document.body.removeChild(loadingIndicator);
       }
       
-      // Move to the next person
-      currentPersonIndex = (currentPersonIndex + 1) % nameElements.length;
+      const errorMessage = document.createElement('div');
+      errorMessage.style.cssText = `
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        z-index: 9999;
+      `;
+      errorMessage.textContent = 'Could not load all images. Tap a name to see photos.';
+      document.body.appendChild(errorMessage);
       
-      // Preload the next person's images
-      const nextPerson = nameElements[currentPersonIndex].textContent;
-      personImages[nextPerson].forEach(img => {
-        const imgEl = new Image();
-        imgEl.src = img;
+      // Auto hide error after 5 seconds
+      setTimeout(() => {
+        if (document.body.contains(errorMessage)) {
+          document.body.removeChild(errorMessage);
+        }
+      }, 5000);
+    }
+  }
+  
+  // Handle window resize events for responsiveness
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    // Debounce resize events
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      setResponsiveSizes();
+    }, 200);
+  });
+  
+  // Add touch support for mobile and tablet
+  function setupTouchEvents() {
+    const { deviceType } = getDeviceInfo();
+    
+    if (deviceType === 'mobile' || deviceType === 'tablet') {
+      nameElements.forEach((nameEl, index) => {
+        nameEl.addEventListener('touchstart', () => {
+          const name = activateName(index);
+          
+          // Display the first image of the touched person
+          if (personImages[name] && personImages[name].length > 0) {
+            changeBackground(personImages[name][0]);
+          }
+        });
       });
     }
   }
   
-  // Start the animation with performance optimizations
+  // Start everything when the page loads
   window.addEventListener('load', () => {
-    // Remove the brown background from the pack div
-    document.getElementById('pack').style.backgroundColor = 'transparent';
-    
-    // Add a dark overlay to the page for better text visibility
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 2;
-    `;
-    page1.insertBefore(overlay, document.getElementById('pack'));
-    
-    // Update z-index of pack
-    document.getElementById('pack').style.zIndex = '3';
-    
-    // Apply responsive adjustments
-    setResponsiveSizes();
-    
-    // Preload all images
-    preloadImages();
-    
-    // Run the animation
-    runAnimation();
+    setupTouchEvents();
+    initPage();
   });
-  
-  // Handle window resize events for responsiveness
-  window.addEventListener('resize', () => {
-    setResponsiveSizes();
-  });
-  
-  // Add touch support for mobile and tablet
-  if (getDeviceType() === 'mobile' || getDeviceType() === 'tablet') {
-    nameElements.forEach((nameEl, index) => {
-      nameEl.addEventListener('touchstart', () => {
-        const name = activateName(index);
-        
-        // Display the first image of the touched person
-        if (personImages[name] && personImages[name].length > 0) {
-          changeBackground(personImages[name][0]);
-        }
-      });
-    });
-  }

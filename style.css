@@ -1,0 +1,138 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: neu;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+#main {
+    overflow: hidden;
+}
+
+#page1 {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+#background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#pack {
+    width: 40vw;
+    height: 60vh;
+    position: absolute;
+    top: 30%;
+    right:1%;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    z-index: 99999999999999999999;
+    background-color:sandybrown;
+}
+
+#pack h1 {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    mix-blend-mode: exclusion;
+}
+
+.name1, .name2, .name3, .name4, .name5, .name6 {
+    font-size: 8vw;
+    position: absolute;
+    right: 8%;
+    text-align: end;
+    font-weight: 600;
+    font-family: sans-serif;
+    transform-origin: right center;
+}
+
+.line6 {
+    color: white;
+    width: 100vw;
+    position: absolute;
+    height: 10vh;
+    /* background-color:green; */
+    right: 0%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    bottom: 0%;
+}
+
+.line5 {
+    color: white;
+    width: 100vw;
+    position: absolute;
+    /* background-color:brown; */
+    height: 10vh;
+    right: 0%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    bottom: 17%;
+}
+
+.line1 {
+    color: white;
+    width: 100vw;
+    position: absolute;
+    height: 10vh;
+    right: 0%;
+    /* background-color: red; */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    bottom: 84%;
+}
+
+.line2 {
+    color: white;
+    position: absolute;
+    width: 100vw;
+    right: 0%;
+    bottom: 67%;
+    height: 10vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* background-color:lightskyblue; */
+}
+
+.line3 {
+    color: white;
+    width: 100vw;
+    position: absolute;
+    height: 10vh;
+    right: 0%;
+    bottom: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* background-color: aquamarine; */
+}
+
+.line4 {
+    color: white;
+    position: absolute;
+    width: 100vw;
+    right: 0%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    bottom: 34%;
+    height: 10vh;
+    /* background-color:sandybrown; */
+}

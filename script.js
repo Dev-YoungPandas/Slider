@@ -156,7 +156,7 @@ function changeBackground(imageUrl) {
     nextBg.style.backgroundImage = `url(${imageUrl})`;
 
     // Adjust transition speed based on device
-    const transitionSpeed = getDeviceType() === 'mobile' ? 0.25 : 0.3;
+    const transitionSpeed = getDeviceType() === 'mobile' ? 0.3 : 0.3;
 
     // Fast crossfade transition
     gsap.to(currentBg, {

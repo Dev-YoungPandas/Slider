@@ -145,7 +145,7 @@ const personImages = {
     const currentBg = backgrounds[currentBgIndex];
     const nextBg = backgrounds[currentBgIndex === 0 ? 1 : 0];
     nextBg.style.backgroundImage = `url(${imageUrl})`;
-    const transitionSpeed = getDeviceType() === 'mobile' ? 0.4 : 0.3;
+    const transitionSpeed = getDeviceType() === 'mobile' ? 0.25 : 0.3;
     gsap.to(currentBg, { opacity: 0, duration: transitionSpeed,  });
     gsap.to(nextBg, { opacity: 1, duration: transitionSpeed,  });
     currentBgIndex = currentBgIndex === 0 ? 1 : 0;
